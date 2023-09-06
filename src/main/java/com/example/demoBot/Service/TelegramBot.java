@@ -4,6 +4,7 @@ package com.example.demoBot.Service;
 
 import com.example.demoBot.model.User;
 import com.example.demoBot.repositories.UserRepository;
+import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -114,7 +115,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         super.onRegister();
     }
     public void startMessageReceived(long chatId, String name) {
-        String answer = "Hello " + name + ", sport is good!";
+        String answer = EmojiParser.parseToUnicode("Hello " + name + ", sport is good!" + ":muscle:");
         sendMessage(chatId, answer);
         log.info("replied on /start to user: " + name);
 
