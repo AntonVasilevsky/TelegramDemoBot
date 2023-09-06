@@ -2,6 +2,7 @@ package com.example.demoBot.Service;
 
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
@@ -13,6 +14,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.List;
 @Component
+@Slf4j
 public class TelegramBot extends TelegramLongPollingBot {
     @Value("${bot.name}")
     private final String name;
@@ -35,9 +37,10 @@ public class TelegramBot extends TelegramLongPollingBot {
             switch (messageText){
                 case "/start":
                     String name = update.getMessage().getChat().getFirstName();
-                    onStartMessageReceived(chatId, name);
+                    startMessageReceived(chatId, name);
+                    log.info("replied on /start to user: " + name);
                     break;
-                case
+
                 default:
                     sendMessage(chatId, "Sorry, this command is not recognized");
             }
@@ -61,7 +64,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     public void onRegister() {
         super.onRegister();
     }
-    public void onStartMessageReceived(long chatId, String name) {
+    public void startMessageReceived(long chatId, String name) {
         String answer = "Hello " + name + ", you will win a jackpot!";
         sendMessage(chatId, answer);
     }
@@ -70,7 +73,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
+            log.error("Error occurred: " + e.getMessage());
         }
     }
 }
