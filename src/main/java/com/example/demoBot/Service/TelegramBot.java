@@ -15,6 +15,9 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.sql.Timestamp;
@@ -121,6 +124,29 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
     public void sendMessage(long chatId, String messageToSend) {
         SendMessage message = new SendMessage(String.valueOf(chatId), messageToSend);
+
+        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
+        List<KeyboardRow> rowList = new ArrayList<>();
+
+        KeyboardRow row = new KeyboardRow();
+
+        row.add(new KeyboardButton("/check weather"));
+        row.add(new KeyboardButton("/sport news"));
+        rowList.add(row);
+
+        row = new KeyboardRow();
+
+        row.add(new KeyboardButton("/exchange rates"));
+        row.add(new KeyboardButton("/top movies"));
+        row.add(new KeyboardButton("/evening show"));
+        rowList.add(row);
+
+        markup.setKeyboard(rowList);
+
+        message.setReplyMarkup(markup);
+
+
+
         try {
             execute(message);
         } catch (TelegramApiException e) {
