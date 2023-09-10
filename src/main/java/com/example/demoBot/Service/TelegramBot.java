@@ -6,7 +6,7 @@ import com.example.demoBot.model.User;
 import com.example.demoBot.repositories.UserRepository;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
@@ -31,7 +31,7 @@ import java.util.List;
 @Slf4j
 public class TelegramBot extends TelegramLongPollingBot {
 
-    @Value("${bot.name}")
+
     private String name;
 
     private final Long botOwner;
@@ -43,15 +43,16 @@ public class TelegramBot extends TelegramLongPollingBot {
             You can choose commands from the menu
             For example:
             Type /mydata to see your data stored""";
+    private static final String CONFIRM_BUTTON = "CONFIRM_BUTTON";
+    private static final String DENY_BUTTON = "DENY_BUTTON";
+    private static final String ERROR_OCCURRED = "Error occurred: ";
 
 
-
+    @Autowired
     public TelegramBot(String botToken, String name, Long botOwner, UserRepository userRepository) {
         super(botToken);
         this.name = name;
         this.botOwner = botOwner;
-
-
         this.userRepository = userRepository;
         List<BotCommand> botCommandsList = new ArrayList<>();
         botCommandsList.add(new BotCommand("/start", "get a welcome message"));
@@ -74,32 +75,32 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             if(messageText.contains("/send") && update.getMessage().getChat().getId().equals(botOwner)) {
                 String messageToSend = EmojiParser.parseToUnicode(messageText.substring(messageText.indexOf(" ")));
-                sendMessage(chatId, messageToSend);
-                userRepository.findAll().forEach(user -> sendMessage(user.getId(), messageToSend));
-            }
 
-            switch (messageText){
-                case "/start":
-                    String name = update.getMessage().getChat().getFirstName();
-                    startMessageReceived(chatId, name);
-                    registerUser(update.getMessage());
-                    System.out.println("Owner " + botOwner + "bot name " + this.name);
-                    break;
-                case "/help":
-                    sendMessage(chatId, HELP_INFO);
-                    break;
-                case "/mydata":
-                    String response = myDataMessageReceived(chatId);
-                    sendMessage(chatId, response);
-                    break;
-                case "/register":
-                    register(chatId);
-                    break;
-                case "/send":
-                    break;
+                userRepository.findAll().forEach(user -> configureAndSendMessage(user.getId(), messageToSend));
+            }else {
 
-                default:
-                    sendMessage(chatId, "Sorry, this command is not recognized");
+                switch (messageText) {
+                    case "/start":
+                        String name = update.getMessage().getChat().getFirstName();
+                        startMessageReceived(chatId, name);
+                        registerUser(update.getMessage());
+                        System.out.println("Owner " + botOwner + "bot name " + this.name);
+                        break;
+                    case "/help":
+                        configureAndSendMessage(chatId, HELP_INFO);
+                        break;
+                    case "/mydata":
+                        String response = myDataMessageReceived(chatId);
+                        configureAndSendMessage(chatId, response);
+                        break;
+                    case "/register":
+                        register(chatId);
+                        break;
+
+
+                    default:
+                        configureAndSendMessage(chatId, "Sorry, this command is not recognized");
+                }
             }
 
         } else if (update.hasCallbackQuery()) {
@@ -109,28 +110,12 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             if(data.equals("CONFIRM_BUTTON")) {
                 String text = "You have pressed confirm button";
-                EditMessageText message = new EditMessageText();
-                message.setChatId(chatId);
-                message.setText(text);
-                message.setMessageId(messageId);
+                executeEditMessageText(chatId, text, messageId);
 
-                try {
-                    execute(message);
-                } catch (TelegramApiException e) {
-                    log.error("Error occurred: " + e.getMessage());
-                }
             } else if (data.equals("DENY_BUTTON")) {
                 String text = "You have pressed deny button";
-                EditMessageText message = new EditMessageText();
-                message.setChatId(chatId);
-                message.setText(text);
-                message.setMessageId(messageId);
+                executeEditMessageText(chatId, text, messageId);
 
-                try {
-                    execute(message);
-                } catch (TelegramApiException e) {
-                    log.error("Error occurred: " + e.getMessage());
-                }
             }
         }
     }
@@ -150,11 +135,11 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         InlineKeyboardButton confirmButton = new InlineKeyboardButton();
         confirmButton.setText("Confirm");
-        confirmButton.setCallbackData("CONFIRM_BUTTON");
+        confirmButton.setCallbackData(CONFIRM_BUTTON);
 
         InlineKeyboardButton denyButton = new InlineKeyboardButton();
         denyButton.setText("Deny");
-        denyButton.setCallbackData("DENY_BUTTON");
+        denyButton.setCallbackData(DENY_BUTTON);
 
         buttons.add(confirmButton);
         buttons.add(denyButton);
@@ -164,13 +149,18 @@ public class TelegramBot extends TelegramLongPollingBot {
         inlineMarkup.setKeyboard(keyboard);
 
         message.setReplyMarkup(inlineMarkup);
+        executeMessage(message);
 
+
+
+    }
+
+    private void executeMessage(SendMessage message) {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            log.error("Error occurred: " + e.getMessage());
+            log.error(ERROR_OCCURRED + e.getMessage());
         }
-
     }
 
     private String myDataMessageReceived(Long chatId) {
@@ -210,13 +200,20 @@ public class TelegramBot extends TelegramLongPollingBot {
     public void onRegister() {
         super.onRegister();
     }
-    public void startMessageReceived(long chatId, String name) {
+    private void startMessageReceived(long chatId, String name) {
         String answer = EmojiParser.parseToUnicode("Hello " + name + ", sport is good!" + ":muscle:");
         sendMessage(chatId, answer);
         log.info("replied on /start to user: " + name);
 
     }
-    public void sendMessage(long chatId, String messageToSend) {
+    private void configureAndSendMessage(long chatId, String messageToSend) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText(messageToSend);
+        executeMessage(message);
+
+    }
+    private void sendMessage(long chatId, String messageToSend) {
         SendMessage message = new SendMessage(String.valueOf(chatId), messageToSend);
 
         ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
@@ -241,11 +238,20 @@ public class TelegramBot extends TelegramLongPollingBot {
         message.setReplyMarkup(markup);
 
 
+        executeMessage(message);
+
+    }
+
+    private void executeEditMessageText(long chatId, String text, int messageId) {
+        EditMessageText message = new EditMessageText();
+        message.setChatId(chatId);
+        message.setText(text);
+        message.setMessageId(messageId);
 
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            log.error("Error occurred: " + e.getMessage());
+            log.error(ERROR_OCCURRED + e.getMessage());
         }
     }
 }

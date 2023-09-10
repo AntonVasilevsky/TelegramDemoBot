@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class BotConfig {
+    @Value("${bot.name}")
+    private String name;
 
     @Value("${bot.token}")
     private String botToken;
@@ -15,11 +17,16 @@ public class BotConfig {
 
 
     @Bean
-    public String getBotToken() {
+    public String botToken() {
         return botToken;
     }
     @Bean
-    public Long getBotOwner() {
+    public Long botOwner() {
         return botOwner;
+    }
+    @Bean
+    @Qualifier("telegramBot")
+    public String name() {
+        return name;
     }
 }
