@@ -25,25 +25,32 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.sql.Timestamp;
-import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 @Component
 @Slf4j
 public class TelegramBot extends TelegramLongPollingBot {
+
     @Value("${bot.name}")
-    private final String name;
+    private String name;
+
+    private final Long botOwner;
+
     private final UserRepository userRepository;
     private static final String HELP_INFO = """
             This bot was created for demo purposes
             You can choose commands from the menu
+            For example:
             Type /mydata to see your data stored""";
 
 
-    public TelegramBot(String botToken, String name, UserRepository userRepository) {
+
+    public TelegramBot(String botToken, String name, Long botOwner, UserRepository userRepository) {
         super(botToken);
         this.name = name;
+        this.botOwner = botOwner;
+
+
         this.userRepository = userRepository;
         List<BotCommand> botCommandsList = new ArrayList<>();
         botCommandsList.add(new BotCommand("/start", "get a welcome message"));
@@ -58,17 +65,24 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
 
     }
-
     @Override
     public void onUpdateReceived(Update update) {
         if(update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
             Long chatId = update.getMessage().getChatId();
+
+            if(messageText.contains("/send") && update.getMessage().getChat().getId().equals(botOwner)) {
+                String messageToSend = EmojiParser.parseToUnicode(messageText.substring(messageText.indexOf(" ")));
+                sendMessage(chatId, messageToSend);
+                userRepository.findAll().forEach(user -> sendMessage(user.getId(), messageToSend));
+            }
+
             switch (messageText){
                 case "/start":
                     String name = update.getMessage().getChat().getFirstName();
                     startMessageReceived(chatId, name);
                     registerUser(update.getMessage());
+                    System.out.println("Owner " + botOwner + "bot name " + this.name);
                     break;
                 case "/help":
                     sendMessage(chatId, HELP_INFO);
@@ -80,6 +94,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "/register":
                     register(chatId);
                     break;
+
                 default:
                     sendMessage(chatId, "Sorry, this command is not recognized");
             }

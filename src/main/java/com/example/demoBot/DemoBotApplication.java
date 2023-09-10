@@ -9,16 +9,12 @@ import org.springframework.context.annotation.PropertySource;
 @SpringBootApplication
 @PropertySource("application.properties")
 public class DemoBotApplication {
-	@Value("${bot.token}")
-	private String botToken;
+
 
 	public static void main(String[] args) {
 		SpringApplication.run(DemoBotApplication.class, args);
 	}
 
-	@Bean
-	public String getBotToken() {
-		return botToken;
-	}
+
 
 }
