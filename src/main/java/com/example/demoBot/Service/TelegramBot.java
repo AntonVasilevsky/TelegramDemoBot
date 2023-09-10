@@ -2,11 +2,14 @@ package com.example.demoBot.Service;
 
 
 
+import com.example.demoBot.model.Ads;
 import com.example.demoBot.model.User;
+import com.example.demoBot.repositories.AdsRepository;
 import com.example.demoBot.repositories.UserRepository;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
@@ -37,6 +40,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final Long botOwner;
 
     private final UserRepository userRepository;
+    private final AdsRepository adsRepository;
 
     private static final String HELP_INFO = """
             This bot was created for demo purposes
@@ -49,11 +53,12 @@ public class TelegramBot extends TelegramLongPollingBot {
 
 
     @Autowired
-    public TelegramBot(String botToken, String name, Long botOwner, UserRepository userRepository) {
+    public TelegramBot(String botToken, String name, Long botOwner, UserRepository userRepository, AdsRepository adsRepository) {
         super(botToken);
         this.name = name;
         this.botOwner = botOwner;
         this.userRepository = userRepository;
+        this.adsRepository = adsRepository;
         List<BotCommand> botCommandsList = new ArrayList<>();
         botCommandsList.add(new BotCommand("/start", "get a welcome message"));
         botCommandsList.add(new BotCommand("/mydata", "get my stored data"));
@@ -252,6 +257,16 @@ public class TelegramBot extends TelegramLongPollingBot {
             execute(message);
         } catch (TelegramApiException e) {
             log.error(ERROR_OCCURRED + e.getMessage());
+        }
+    }
+    @Scheduled(cron = "0 * * * * *")
+    private void sendAds() {
+        Iterable<Ads> adsRepositoryAll = adsRepository.findAll();
+        Iterable<User> userRepositoryAll = userRepository.findAll();
+        for (Ads ads : adsRepositoryAll) {
+            for(User user : userRepositoryAll) {
+                configureAndSendMessage(user.getId(), ads.getMessage());
+            }
         }
     }
 }
