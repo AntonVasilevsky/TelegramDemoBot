@@ -37,6 +37,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final Long botOwner;
 
     private final UserRepository userRepository;
+
     private static final String HELP_INFO = """
             This bot was created for demo purposes
             You can choose commands from the menu
@@ -93,6 +94,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                     break;
                 case "/register":
                     register(chatId);
+                    break;
+                case "/send":
                     break;
 
                 default:
